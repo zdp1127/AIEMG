@@ -1,0 +1,8 @@
+#binding_pocket
+center_x = 21.857
+center_y = 0.260
+center_z = 52.761
+
+size_x = 25
+size_y = 25
+size_z = 25
