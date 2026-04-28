@@ -8,7 +8,7 @@ import os
 
 class ActivityCliffDetector:
     
-    def __init__(self, alpha1=0.5, alpha2=2.0, max_memory_size=1000):
+    def __init__(self):
         
         self.alpha1 = alpha1
         self.alpha2 = alpha2
@@ -33,6 +33,58 @@ class ActivityCliffDetector:
                 valid_smiles.append(None)
                 
         return fps, valid_smiles
+
+    @staticmethod
+    def _get_docking_score(score):
+        if isinstance(score, list) and len(score) > 0:
+            return float(score[0])
+        if isinstance(score, (int, float, np.floating)):
+            return float(score)
+        return None
+
+    def _calc_aci(self, docking_m, docking_mp, fp_m, fp_mp):
+        diff_abs = abs(float(docking_m) - float(docking_mp))
+        similarity = DataStructs.FingerprintSimilarity(fp_mp, fp_m)
+        dist = 1.0 - float(similarity)
+        if dist <= 0.0:
+            return None, diff_abs, dist
+        return diff_abs / dist, diff_abs, dist
+
+    def calculate_acr(self, smiles, docking_score):
+        if len(self.high_activity_memory) == 0:
+            return 0.0
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return 0.0
+        fp_m = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
+        if fp_m is None:
+            return 0.0
+        beta1 = float(self.alpha1)
+        beta2 = float(self.alpha2)
+        if beta1 <= 0.0:
+            return 0.0
+        terms = []
+        f_m = float(docking_score)
+        for _, row in self.high_activity_memory.iterrows():
+            fp_mp = row.get('fps', None)
+            if fp_mp is None:
+                continue
+            f_mp = self._get_docking_score(row.get('scores', None))
+            if f_mp is None:
+                continue
+            aci, diff_abs, _ = self._calc_aci(f_m, f_mp, fp_m, fp_mp)
+            if aci is None:
+                continue
+            if diff_abs >= beta1 and aci >= beta2:
+                terms.append((f_m - f_mp) / beta1)
+        if len(terms) == 0:
+            return 0.0
+        acr = float(np.mean(terms))
+        if acr > 1.0:
+            acr = 1.0
+        if acr < -1.0:
+            acr = -1.0
+        return acr
     
     def detect_activity_cliffs(self, new_smiles, new_scores):
         
@@ -70,7 +122,7 @@ class ActivityCliffDetector:
                     score2 = score
                     
                 diff_abs = abs(score1 - score2)
-                if diff_abs <= self.alpha1:
+                if diff_abs < self.alpha1:
                     continue
                     
                 try:
@@ -83,7 +135,7 @@ class ActivityCliffDetector:
                    
                     ACI = diff_abs / dist
                     
-                    if ACI > self.alpha2:
+                    if ACI >= self.alpha2:
                         cliff_type = "high_to_low" if score1 > score2 else "low_to_high"
                         cliff_pairs.append({
                             'smiles1': row['smiles'],
