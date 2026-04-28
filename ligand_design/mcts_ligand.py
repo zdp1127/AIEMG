@@ -2,12 +2,12 @@ from math import *
 import random
 import random as pr
 import numpy as np
-from copy import deepcopy
+#from copy import deepcopy
 import time
 import argparse
 
-from load_model import loaded_model
-from make_smile import zinc_data_with_bracket_original, zinc_processed_with_bracket
+#from load_model import loaded_model
+#from make_smile import zinc_data_with_bracket_original, zinc_processed_with_bracket
 from add_node_type import chem_kn_simulation, make_input_smile,predict_smile,check_node_type,node_to_add,expanded_node
 from activity_cliff import ActivityCliffDetector
 import copy
@@ -16,7 +16,8 @@ import json
 import errno
 import argparse
 from joblib import Parallel, delayed
-import pdb
+#import pdb
+
 
 def _hv_prepare_points_for_minimization(front):
     pts = copy.deepcopy(front)
@@ -218,40 +219,7 @@ class pareto:
         self.hv_cache_size = -1
         self.hv_relax_shift_cache = None
         self.hv_relax_shift_cache_size = -1
-        
-        if self.cliff_detector is not None:
-            self.cliff_detector.update_memory([compound], [scores])
-            
-            cliff_pairs = self.cliff_detector.detect_activity_cliffs([compound], [scores])
-            if cliff_pairs:
-               
-                self.cliff_detector.add_cliff_pairs(cliff_pairs)
-                
-                f = open(dataDir+"output.txt", 'a')                 
-                print("Activity Cliffs detected:", file=f)
-                for pair in cliff_pairs:
-                    print(f"  {pair['smiles1']} (score: {pair['scores1']:.3f}) -> {pair['smiles2']} (score: {pair['scores2']:.3f}) ACI: {pair['ACI']:.3f}", file=f)
-                f.close()
-                
-                self._save_cliff_pairs_detailed(cliff_pairs, compound, scores)
-            
-            if len(scores) >= 5:
-                normalized_docking = _sbmolgennormalize(scores[0])
-                if DISABLE_ACR_COMPONENT:
-                    scores[4] = normalized_docking
-                else:
-                    acr = _calculate_acr(compound, self.cliff_detector)
-                    normalized_acr = (acr + 1) / 2
-                    acs = ACS_DOCKING_WEIGHT * normalized_docking + ACS_ACR_WEIGHT * normalized_acr
-                    acs = max(0, min(1, acs))
-                    scores[4] = round(acs, 3)
-                
-        else:
-            if len(scores) >= 5:
-                scores[4] = _sbmolgennormalize(scores[0])
-                
-                f = open(dataDir+"output.txt", 'a') 
-        
+        f = open(dataDir+"output.txt", 'a')
         print("pareto size:",len(self.front),file=f)
         print("Updated pareto front",self.front, file=f)
         print("Pareto Ligands",self.compounds,file=f)
@@ -488,19 +456,22 @@ class Node:
 
     def wcal(self,pareto,ucb):
         dominated = pareto.Dominated(ucb)
+        hv_front = pareto.get_hv_value()
         if dominated and HV_RELAX_ENABLED:
-            hv_front = pareto.get_hv_value()
             shift = pareto.get_hv_relax_shift()
             relaxed = _hv_shift_point_max(ucb, shift)
             hv_relaxed = _hv_value_from_front_max(pareto.front + [relaxed])
-            soft = hv_relaxed - hv_front
-            if soft < 0.0:
-                soft = 0.0
-            return hv_front + HV_RELAX_SOFT_WEIGHT * soft
-        hv = self.get_cached_hv(pareto)
+            delta_hat = hv_relaxed - hv_front
+            if delta_hat < 0.0:
+                delta_hat = 0.0
+            return delta_hat
         if dominated:
-            return hv - self.distance(pareto,ucb)
-        return hv
+            return 0.0
+        hv_with = _hv_value_from_front_max(pareto.front + [ucb])
+        delta = hv_with - hv_front
+        if delta < 0.0:
+            delta = 0.0
+        return delta
 
     def distance(self, pareto, ucb):
         avg = pareto.avg
@@ -578,17 +549,7 @@ class Node:
         _set_file.close()
         while True:
             new_root.childNodes 
-        print("Loaded Pareto Fronts")
-        return new_pareto
-        self.position = position
-        self.parentNode = parent
-        self.childNodes = childNodes
-        self.child=child
-        self.wins = wins
-        self.visits = visits
-        self.nonvisited_atom=state.Getatom() if nonvisited_atom is None else nonvisited_atom
-        self.type_node=type_node
-        self.depth=depth
+        
 
 def _sigmoidnormalize(score:float)-> float:
    
@@ -615,29 +576,23 @@ def _sa_score_normalize(score:float)-> float:
 
 def _calculate_acs(docking_score: float, cliff_detector, smiles: str) -> float:
     
-    normalized_docking = _sbmolgennormalize(docking_score)
+    normalized_docking = docking_score
     
     if cliff_detector is None or DISABLE_ACR_COMPONENT:
         return normalized_docking
     
-    acr = _calculate_acr(smiles, cliff_detector)
+    acr = _calculate_acr(smiles, docking_score, cliff_detector)
     normalized_acr = (acr + 1) / 2
     acs = ACS_DOCKING_WEIGHT * normalized_docking + ACS_ACR_WEIGHT * normalized_acr
     acs = max(0, min(1, acs))
     return round(acs, 3)
 
-def _calculate_acr(smiles: str, cliff_detector) -> float:
-   
-    if cliff_detector is None or len(cliff_detector.cliff_memory) == 0:
+def _calculate_acr(smiles: str, docking_score: float, cliff_detector) -> float:
+    if cliff_detector is None:
         return 0.0
-    
-    cliff_molecules = cliff_detector.cliff_memory['smiles'].tolist()
-    
-    if smiles not in cliff_molecules:
-        return 0.0
-    
-    molecule_row = cliff_detector.cliff_memory[cliff_detector.cliff_memory['smiles'] == smiles]
-    if len(molecule_row) == 0:
+    try:
+        return float(cliff_detector.calculate_acr(smiles, docking_score))
+    except Exception:
         return 0.0
 
 
@@ -667,15 +622,7 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
         config = json.load(open(dataDir+'config.json'))
         REWARD = config['reward'] 
         
-        DISABLE_ACR_COMPONENT = config.get('disable_acr_component', DISABLE_ACR_COMPONENT)
-        ACS_DOCKING_WEIGHT = config.get('acs_docking_weight', ACS_DOCKING_WEIGHT)
-        ACS_ACR_WEIGHT = config.get('acs_acr_weight', ACS_ACR_WEIGHT)
-        CLIFF_ALPHA1 = config.get('activity_cliff_alpha1', CLIFF_ALPHA1)
-        CLIFF_ALPHA2 = config.get('activity_cliff_alpha2', CLIFF_ALPHA2)
         
-        UCB_EXPLORATION_CONSTANT = config.get('ucb_exploration_constant', UCB_EXPLORATION_CONSTANT)
-        VISIT_PENALTY_COEFF = config.get('visit_penalty_coefficient', VISIT_PENALTY_COEFF)
-
 
     mcts_start_time = time.time()
 
@@ -762,7 +709,6 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
                 
             metrics = {
                 'timestamp': time.asctime(time.localtime(time.time())),
-                'num_generated_molecules': num_generated,
                 'hypervolume': hv_value,
                 'total_elapsed_seconds': total_elapsed_sec,
                 'diversity_mean_tanimoto_distance': diversity_mean,
@@ -831,7 +777,7 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
             state.SelectPosition(node.position)
       
         
-        if node.position == '\n':
+        '''if node.position == '\n':
             
             print("end with \\n")
             while node != None:
@@ -844,18 +790,11 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
             while node != None:
                 node.Update(penalty_reward)
                 node = node.parentNode
-            continue
+            continue'''
         
 
-        expanded=expanded_node(model,state.position,val)
-        nodeadded=node_to_add(expanded,val)
-        all_posible=chem_kn_simulation(model,state.position,val,nodeadded)
-        generate_smile=predict_smile(all_posible,val)
-        new_compound=make_input_smile(generate_smile)
-
-
         
-               # node_index,scores,valid_smile=check_node_type(new_compound,dataDir)
+        node_index,scores,valid_smile=check_node_type(new_compound,dataDir)
         f = open(os.path.join(dataDir, "ligands.txt"), 'a')
         for p in valid_smile:
             print(p,file=f)
@@ -883,9 +822,10 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
                 node.Addnode(nodeadded[m],state)
                 if len(node.childNodes) >0:
                     node_pool.append(node.childNodes[-1])
-
-                f = open(dataDir+"depth.txt", 'a')
+            
+            f = open(os.path.join(dataDir, "depth.txt"), 'a')
             print(len(state.position),file=f)
+            f.close()
             
             base_dock_score = 0
             if REWARD == "normal":
@@ -897,7 +837,18 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
         
             scores[i][3] = _sa_score_normalize(scores[i][3])
             
-            scores[i][4] = ACS_normalize(scores[i][4])
+            if len(scores[i]) >= 5:
+                scores[i][4] = _calculate_acs(scores[i][0], (pareto.cliff_detector if enable_activity_cliff else None), valid_smile[i])
+
+            if enable_activity_cliff and pareto.cliff_detector is not None:
+                pareto.cliff_detector.update_memory([valid_smile[i]], [scores[i]])
+                cliff_pairs = pareto.cliff_detector.detect_activity_cliffs([valid_smile[i]], [scores[i]])
+                if cliff_pairs:
+                    pareto.cliff_detector.add_cliff_pairs(cliff_pairs)
+                    try:
+                        pareto._save_cliff_pairs_detailed(cliff_pairs, valid_smile[i], scores[i])
+                    except Exception:
+                        pass
 
             if pareto.Dominated(scores[i]) == False:
                 pareto.Update(scores[i],valid_smile[i])
@@ -935,6 +886,7 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
             pareto._save_cliff_statistics(cliff_stats)
     
  
+    
     if enable_activity_cliff and pareto.cliff_detector is not None:
         cliff_stats = pareto.get_cliff_statistics()
    
@@ -1018,16 +970,7 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
         except Exception as _:
             coverage = None
 
-        metrics = {
-            'timestamp': time.asctime(time.localtime(time.time())),
-            'num_generated_molecules': num_generated,
-            'hypervolume': hv_value,
-            'total_elapsed_seconds': total_elapsed_sec,
-            'diversity_mean_tanimoto_distance': diversity_mean,
-            'novelty_mean_tanimoto_distance': novelty_mean,
-            'pareto_coverage_against_baseline': coverage
-        }
-
+       
         os.makedirs(os.path.join(dataDir, 'present'), exist_ok=True)
 
         try:
@@ -1104,13 +1047,3 @@ if __name__ == "__main__":
 else :
     raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT),dataDir+'/input/python_config.json')
     
-    smile_old=zinc_data_with_bracket_original()
-    val,smile=zinc_processed_with_bracket(smile_old)
-  
-    model=loaded_model(rnnModelDir)
-    
-    enable_ier = config.get('enable_ier', True)  
-    enable_activity_cliff = config.get('enable_activity_cliff', True)  
-    
-    valid_compound=UCTchemical(budget=budget, CostPerMolecule=CostPerMolecule, 
-                              enable_activity_cliff=enable_activity_cliff, enable_ier=enable_ier)
