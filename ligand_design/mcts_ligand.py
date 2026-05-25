@@ -2,12 +2,12 @@ from math import *
 import random
 import random as pr
 import numpy as np
+from scipy.stats import qmc
 #from copy import deepcopy
 import time
 import argparse
 
-#from load_model import loaded_model
-#from make_smile import zinc_data_with_bracket_original, zinc_processed_with_bracket
+
 from add_node_type import chem_kn_simulation, make_input_smile,predict_smile,check_node_type,node_to_add,expanded_node
 from activity_cliff import ActivityCliffDetector
 import copy
@@ -48,49 +48,48 @@ def _hv_filter_nondominated_min(points):
             keep[i] = False
     return pts[keep]
 
-def _hv_2d_min(points, ref_point):
+def _hv_qmc_min(points, ref_point, n_samples=10000):
     pts = _hv_filter_nondominated_min(points)
     if pts.shape[0] == 0:
         return 0.0
-    pts = pts[np.argsort(pts[:, 0])]
-    rx, ry = float(ref_point[0]), float(ref_point[1])
-    hv = 0.0
-    y_prev = ry
-    for i in range(pts.shape[0]):
-        x, y = float(pts[i, 0]), float(pts[i, 1])
-        if y < y_prev:
-            hv += max(0.0, rx - x) * (y_prev - y)
-            y_prev = y
-    return hv
-
-def _hv_wfg_min(points, ref_point):
-    pts = _hv_filter_nondominated_min(points)
-    if pts.shape[0] == 0:
-        return 0.0
-    ref = np.asarray(ref_point, dtype=float).reshape((-1,))
+    
     m = pts.shape[1]
-    if m == 1:
-        return float(ref[0] - np.min(pts[:, 0]))
-    if m == 2:
-        return _hv_2d_min(pts, ref)
-    order = np.argsort(pts[:, m - 1])[::-1]
-    pts = pts[order]
-    hv = 0.0
-    z_prev = float(ref[m - 1])
-    for i in range(pts.shape[0]):
-        z = float(pts[i, m - 1])
-        if z < z_prev:
-            slice_height = z_prev - z
-            hv += slice_height * _hv_wfg_min(pts[i:, :m - 1], ref[:m - 1])
-            z_prev = z
-    return hv
+    ref = np.asarray(ref_point, dtype=float).reshape((1, m))
+    
+    # Lower bound is the component-wise minimum of all points
+    lb = np.min(pts, axis=0)
+    ub = ref[0]
+    
+    if np.any(lb >= ub):
+        return 0.0
+    
+    # Total volume of the bounding box
+    total_vol = np.prod(ub - lb)
+    
+    
+    actual_n = 2**int(np.ceil(np.log2(n_samples)))
+    sampler = qmc.Sobol(d=m, scramble=True)
+    sample = sampler.random(n=actual_n)
+    
+    # Scale samples to [lb, ub]
+    scaled_samples = lb + sample * (ub - lb)
+    
+   
+    dominated_mask = np.zeros(actual_n, dtype=bool)
+    for p in pts:
+        dominated_mask |= np.all(p <= scaled_samples, axis=1)
+        if np.all(dominated_mask):
+            break
+            
+    count = np.sum(dominated_mask)
+    return float(count / actual_n * total_vol)
 
 def _hv_value_from_front_max(front_max):
     if len(front_max) == 0:
         return 0.0
     pts = _hv_prepare_points_for_minimization(front_max)
     ref_point = [0.0] * len(pts[0])
-    return float(_hv_wfg_min(pts, ref_point))
+    return float(_hv_qmc_min(pts, ref_point))
 
 def _hv_iqr_shift_from_front_max(front_max, beta):
     if len(front_max) == 0:
@@ -335,8 +334,6 @@ class pareto:
         except Exception as e:
             
         
-        #stats_txt_file = dataDir + "present/cliff_statistics.txt"
-        #with open(stats_txt_file, 'a') as f:
             f.write(f"{time.asctime(time.localtime(time.time()))} | ")
     
     def _generate_final_cliff_report(self):
@@ -491,7 +488,7 @@ class Node:
         _pareto_temp = _hv_prepare_points_for_minimization(_pareto_temp)
         ref_point = [0.0] * len(_pareto_temp[0])
         try:
-            hvnum = _hv_wfg_min(_pareto_temp, ref_point)
+            hvnum = _hv_qmc_min(_pareto_temp, ref_point)
         except:
             f = open("./hverror_output.txt", 'a')
             print(time.asctime( time.localtime(time.time()) ),file=f)
@@ -634,7 +631,7 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
                 _front = _hv_prepare_points_for_minimization(pareto.front)
                 try:
                     ref_point = [0] * len(_front[0])
-                    hv_value = float(_hv_wfg_min(_front, ref_point))
+                    hv_value = float(_hv_qmc_min(_front, ref_point))
                 except Exception as _:
                     hv_value = 0.0
 
@@ -775,23 +772,6 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
                 break
             node = new_node
             state.SelectPosition(node.position)
-      
-        
-        '''if node.position == '\n':
-            
-            print("end with \\n")
-            while node != None:
-                node.Update(penalty_reward)
-                node = node.parentNode
-            continue
-        if len(state.position)>= 70:
-            
-            print("position bigger than 70")
-            while node != None:
-                node.Update(penalty_reward)
-                node = node.parentNode
-            continue'''
-        
 
         
         node_index,scores,valid_smile=check_node_type(new_compound,dataDir)
@@ -902,7 +882,7 @@ def MCTS(root, pareto=pareto(), budget=3600*240, CostPerMolecule=False, enable_a
             _front = _hv_prepare_points_for_minimization(pareto.front)
             try:
                 ref_point = [0] * len(_front[0])
-                hv_value = float(_hv_wfg_min(_front, ref_point))
+                hv_value = float(_hv_qmc_min(_front, ref_point))
             except Exception as _:
                 hv_value = 0.0
 
