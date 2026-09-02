@@ -1,4 +1,4 @@
-# AIEMG: Active Learning Integrated with Molecular Generation
+# AIEMG: Molecular Generation via Multi-Objective Monte Carlo Tree Search Driven by Activity Cliff and Intrinsic-Extrinsic Rewards
 
 AIEMG is an MCTS-based (Monte Carlo Tree Search) molecular design framework that combines Pareto optimization with activity cliff detection and intrinsic-extrinsic reward mechanisms for de novo drug design.
 
