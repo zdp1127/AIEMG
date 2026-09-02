@@ -1,0 +1,105 @@
+{
+    "class_name": "Sequential",
+    "config": [
+        {
+            "class_name": "Embedding",
+            "config": {
+                "name": "embedding_1",
+                "trainable": true,
+                "batch_input_shape": [null, 82],
+                "input_dim": 64,
+                "output_dim": 64,
+                "embeddings_initializer": {"class_name": "RandomUniform", "config": {"minval": -0.1, "maxval": 0.1, "seed": null}},
+                "embeddings_regularizer": null,
+                "activity_regularizer": null,
+                "embeddings_constraint": null,
+                "mask_zero": false
+            }
+        },
+        {
+            "class_name": "GRU",
+            "config": {
+                "name": "gru_1",
+                "trainable": true,
+                "return_sequences": true,
+                "return_state": false,
+                "go_backwards": false,
+                "stateful": false,
+                "unroll": false,
+                "implementation": 1,
+                "recurrent_activation": "hard_sigmoid",
+                "activation": "sigmoid",
+                "recurrent_dropout": 0.0,
+                "reset_after": false,
+                "kernel_initializer": {"class_name": "GlorotUniform", "config": {"seed": null}},
+                "recurrent_initializer": {"class_name": "Orthogonal", "config": {"seed": null, "gain": 1.0}},
+                "bias_initializer": {"class_name": "Zeros", "config": {}},
+                "kernel_regularizer": null,
+                "recurrent_regularizer": null,
+                "bias_regularizer": null,
+                "activity_regularizer": null,
+                "kernel_constraint": null,
+                "recurrent_constraint": null,
+                "bias_constraint": null,
+                "dropout": 0.0,
+                "input_dim": 64,
+                "units": 256
+            }
+        },
+        {
+            "class_name": "GRU",
+            "config": {
+                "name": "gru_2",
+                "trainable": true,
+                "return_sequences": true,
+                "return_state": false,
+                "go_backwards": false,
+                "stateful": false,
+                "unroll": false,
+                "implementation": 1,
+                "recurrent_activation": "hard_sigmoid",
+                "activation": "sigmoid",
+                "recurrent_dropout": 0.0,
+                "reset_after": false,
+                "kernel_initializer": {"class_name": "GlorotUniform", "config": {"seed": null}},
+                "recurrent_initializer": {"class_name": "Orthogonal", "config": {"seed": null, "gain": 1.0}},
+                "bias_initializer": {"class_name": "Zeros", "config": {}},
+                "kernel_regularizer": null,
+                "recurrent_regularizer": null,
+                "bias_regularizer": null,
+                "activity_regularizer": null,
+                "kernel_constraint": null,
+                "recurrent_constraint": null,
+                "bias_constraint": null,
+                "dropout": 0.0,
+                "input_dim": 256,
+                "units": 256
+            }
+        },
+        {
+            "class_name": "TimeDistributed",
+            "config": {
+                "name": "time_distributed",
+                "trainable": true,
+                "layer": {
+                    "class_name": "Dense",
+                    "config": {
+                        "name": "dense_1",
+                        "trainable": true,
+                        "activation": "softmax",
+                        "use_bias": true,
+                        "kernel_initializer": {"class_name": "GlorotUniform", "config": {"seed": null}},
+                        "bias_initializer": {"class_name": "Zeros", "config": {}},
+                        "kernel_regularizer": null,
+                        "bias_regularizer": null,
+                        "activity_regularizer": null,
+                        "kernel_constraint": null,
+                        "bias_constraint": null,
+                        "units": 64
+                    }
+                }
+            }
+        }
+    ],
+    "keras_version": "2.9.0"
+}
