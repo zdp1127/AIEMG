@@ -1,0 +1,11 @@
+#binding_pocket
+center_x = 17.146
+center_y = 16.815
+center_z = 26.330
+
+size_x = 25
+size_y = 25
+size_z = 25
+
+exhaustiveness = 8
+num_modes = 9
