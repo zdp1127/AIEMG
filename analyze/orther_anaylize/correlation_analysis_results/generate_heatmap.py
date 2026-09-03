@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""
-生成五维度相关性热图 - 300dpi高清版本
-"""
+
 
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# 相关性矩阵数据
+
 corr_matrix = np.array([
     [1.0000, 0.1583, -0.2573, 0.4332, 0.3355],
     [0.1583, 1.0000, -0.2485, 0.3159, 0.1915],
@@ -16,19 +14,18 @@ corr_matrix = np.array([
     [0.3355, 0.1915, 0.0196, 0.2164, 1.0000]
 ])
 
-# 维度名称
+
 dim_names = ['Docking', 'QED', 'IER', 'SA_Score', 'ACS']
 
-# 创建高质量热图
+
 plt.figure(figsize=(10, 8))
 plt.rcParams['font.family'] = 'DejaVu Sans'
 plt.rcParams['font.size'] = 12
 plt.rcParams['axes.unicode_minus'] = False
 
-# 使用diverging调色板
+
 cmap = sns.diverging_palette(250, 10, as_cmap=True)
 
-# 创建热图
 ax = sns.heatmap(
     corr_matrix,
     annot=True,
@@ -43,25 +40,24 @@ ax = sns.heatmap(
     cbar_kws={'shrink': 0.8, 'label': 'Pearson Correlation Coefficient'}
 )
 
-# 设置标签
+
 ax.set_xticklabels(dim_names, fontsize=13, fontweight='bold', rotation=45, ha='right')
 ax.set_yticklabels(dim_names, fontsize=13, fontweight='bold', rotation=0)
 
-# 标题
 ax.set_title('Correlation Heatmap of Five Dimensions\n(Docking, QED, IER, SA_Score, ACS)', 
              fontsize=16, fontweight='bold', pad=20)
 
 plt.tight_layout()
 
-# 保存高清图片
+
 output_path = '/home/zhoudp409100230054/zhoudp409100230054/MCTS/AIE_Chem_8.15版本_IER问题/AIEMG/template_for_data/present_8.25/correlation_analysis_results/correlation_heatmap_300dpi.png'
 plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
 
-# 同时保存600dpi的出版级版本
+
 output_path_600 = '/home/zhoudp409100230054/zhoudp409100230054/MCTS/AIE_Chem_8.15版本_IER问题/AIEMG/template_for_data/present_8.25/correlation_analysis_results/correlation_heatmap_600dpi.png'
 plt.savefig(output_path_600, dpi=600, bbox_inches='tight', facecolor='white', edgecolor='none')
 
-print(f"热图已保存:")
+
 print(f"  - 300dpi: {output_path}")
 print(f"  - 600dpi: {output_path_600}")
 
