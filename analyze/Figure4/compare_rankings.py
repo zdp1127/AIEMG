@@ -1,8 +1,8 @@
 import pandas as pd
 
 # Read files
-aiemg_path = r'E:\MCTS\2026.7.10修改意见版本\双靶点\SOTA_双_副本\AIEMG\3PP0\combined_top384_sorted.csv'
-chembl_path = r'E:\MCTS\2026.7.10修改意见版本\chembl网页\chembl_with_dock\HER2_docked copy.csv'
+aiemg_path = r'\..\aiemg.csv'
+chembl_path = r'\..\HER2_docked copy.csv'
 
 aiemg = pd.read_csv(aiemg_path)
 chembl = pd.read_csv(chembl_path)
