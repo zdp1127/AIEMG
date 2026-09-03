@@ -1,0 +1,11 @@
+{
+  "timestamp": "Wed Aug 26 16:55:56 2026",
+  "num_generated_molecules": 192,
+  "total_docking_calls": 1713,
+  "hypervolume": 0.23062032681868946,
+  "total_elapsed_seconds": 92370.67227578163,
+  "molecules_per_hour": 7.482894548351398,
+  "diversity_mean_tanimoto_distance": 0.8786221456835515,
+  "novelty_mean_tanimoto_distance": 0.8786221456835515,
+  "pareto_coverage_against_baseline": null
+}

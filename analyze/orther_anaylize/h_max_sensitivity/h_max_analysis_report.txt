@@ -1,0 +1,121 @@
+============================================================
+H_max Sensitivity Analysis Report
+============================================================
+
+Number of molecules analyzed: 1693
+H_max values tested: [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500]
+k_neighbors: 5
+
+------------------------------------------------------------
+Statistics for each H_max value:
+------------------------------------------------------------
+
+H_max = 100:
+  Overall Mean: 0.8032
+  Overall Std: 0.0398
+  Second Half Mean: 0.8066
+  Second Half Std: 0.0372
+  Second Half CV: 0.0462
+
+H_max = 200:
+  Overall Mean: 0.7888
+  Overall Std: 0.0417
+  Second Half Mean: 0.7902
+  Second Half Std: 0.0392
+  Second Half CV: 0.0495
+
+H_max = 300:
+  Overall Mean: 0.7805
+  Overall Std: 0.0433
+  Second Half Mean: 0.7803
+  Second Half Std: 0.0404
+  Second Half CV: 0.0518
+
+H_max = 400:
+  Overall Mean: 0.7745
+  Overall Std: 0.0446
+  Second Half Mean: 0.7722
+  Second Half Std: 0.0419
+  Second Half CV: 0.0542
+
+H_max = 500:
+  Overall Mean: 0.7703
+  Overall Std: 0.0460
+  Second Half Mean: 0.7661
+  Second Half Std: 0.0433
+  Second Half CV: 0.0565
+
+H_max = 600:
+  Overall Mean: 0.7671
+  Overall Std: 0.0470
+  Second Half Mean: 0.7611
+  Second Half Std: 0.0444
+  Second Half CV: 0.0583
+
+H_max = 700:
+  Overall Mean: 0.7648
+  Overall Std: 0.0478
+  Second Half Mean: 0.7571
+  Second Half Std: 0.0451
+  Second Half CV: 0.0596
+
+H_max = 800:
+  Overall Mean: 0.7629
+  Overall Std: 0.0482
+  Second Half Mean: 0.7538
+  Second Half Std: 0.0454
+  Second Half CV: 0.0602
+
+H_max = 900:
+  Overall Mean: 0.7615
+  Overall Std: 0.0489
+  Second Half Mean: 0.7509
+  Second Half Std: 0.0462
+  Second Half CV: 0.0615
+
+H_max = 1000:
+  Overall Mean: 0.7602
+  Overall Std: 0.0493
+  Second Half Mean: 0.7484
+  Second Half Std: 0.0466
+  Second Half CV: 0.0622
+
+H_max = 1100:
+  Overall Mean: 0.7594
+  Overall Std: 0.0497
+  Second Half Mean: 0.7468
+  Second Half Std: 0.0469
+  Second Half CV: 0.0628
+
+H_max = 1200:
+  Overall Mean: 0.7586
+  Overall Std: 0.0501
+  Second Half Mean: 0.7452
+  Second Half Std: 0.0474
+  Second Half CV: 0.0636
+
+H_max = 1300:
+  Overall Mean: 0.7581
+  Overall Std: 0.0503
+  Second Half Mean: 0.7442
+  Second Half Std: 0.0476
+  Second Half CV: 0.0640
+
+H_max = 1400:
+  Overall Mean: 0.7577
+  Overall Std: 0.0504
+  Second Half Mean: 0.7434
+  Second Half Std: 0.0475
+  Second Half CV: 0.0639
+
+H_max = 1500:
+  Overall Mean: 0.7574
+  Overall Std: 0.0506
+  Second Half Mean: 0.7428
+  Second Half Std: 0.0477
+  Second Half CV: 0.0642
+
+============================================================
+Recommended H_max = 100
+(Based on lowest coefficient of variation in second half stability)
+============================================================
